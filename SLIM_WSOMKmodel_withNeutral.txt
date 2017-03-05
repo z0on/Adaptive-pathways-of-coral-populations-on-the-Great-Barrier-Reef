@@ -1,0 +1,279 @@
+initialize() { 
+	initializeMutationRate(0); // 1e-7 : 5-fold the per-base mutation rate. 105,000 inds x 2 genomes x 20 QTLs = 4e+6 loci to mutate. Rate 1e-7 => 0.4 new QTL mutations per generation.
+	defineConstant("popsize",25000);  /// pops 1-5 are this size, pop5 is 1/5th of that
+	defineConstant("h2",0.5); // heritability: proportion of phenotypic variaton explained by genetics
+	defineConstant("pl",1.0); // plasticity: SD of the bell curve defining stabilizing selection regime
+	defineConstant("wi",10.0); // period of sinusoidal climate fluctuations, in generations
+	defineConstant("hi",0.0); // amplitude of sinusoidal climate fluctuations
+	defineConstant("csd",0.25); // sd of climate random component
+	defineConstant("mutEffect",0.2); // SD of mutation effects at QTLs (mean=0)
+	defineConstant("C", 10); // number of QTLs
+	defineConstant("N", 10); // number of unlinked neutral sites (for popgen)
+	defineConstant("increment",0.05); // increment in optimum per generation past genereation 1000 (1 degree in 100 yr, 5 yr per generations => 0.05 per generation)
+
+	defineConstant("migFactor",1); // power factor for migration rate scaling (if you want a stronger penalty for migration rates when fitness declines) 
+	defineConstant("maxfit",dnorm(0.0,0.0,pl)); // absolute fitness value at perfect phenotype-environment match, for scaling
+
+// below we define pairwise immigration rates (m12: proportion of individuals in pop1 that come from pop2 every generation):
+	defineConstant("m12", 2.8e-3); 
+	defineConstant("m21", 9.4e-4); 
+
+	defineConstant("m13", 8.3e-4); 
+	defineConstant("m31", 4e-3); 
+
+	defineConstant("m14", 8e-4); 
+	defineConstant("m41", 2.6e-3); 
+
+	defineConstant("m15", 2e-4); 
+	defineConstant("m51", 2e-3); 
+
+	defineConstant("m23", 8.3e-4); 
+	defineConstant("m32", 4.9e-3); 
+
+	defineConstant("m24", 8.7e-4); 
+	defineConstant("m42", 4.3e-3); 
+
+	defineConstant("m25", 2.3e-4); 
+	defineConstant("m52", 2.6e-3); 
+
+	defineConstant("m34", 6.5e-4); 
+	defineConstant("m43", 4.2e-3); 
+
+	defineConstant("m35", 3.5e-4); 
+	defineConstant("m53", 2.8e-3); 
+	
+	defineConstant("m45", 8.6e-4); 
+	defineConstant("m54", 2.1e-4); 
+
+	// neutral mutations in non-coding regions
+	initializeMutationType("m1", 0.5, "f", 0.0); 
+	initializeGenomicElementType("g1", m1, 1.0);
+		// mutations representing alleles in QTLs
+	initializeMutationType("m2", 0.5, "n", 0,mutEffect); 
+	initializeGenomicElementType("g2", m2, 1.0); 
+		// additional neutral unlinked mutations
+	initializeMutationType("m4", 0.5, "f", 0.0); 
+	initializeGenomicElementType("g3", m4, 1.0); 
+	m2.convertToSubstitution = F;
+	m2.mutationStackPolicy = "f"; // prohibiting new mutations from taking effect (for burn-in period)
+		// a mutation type used to evaluate phenoty(2*PI)c fitness
+	initializeMutationType("m3", 0.5, "f", 0.0); 
+	m3.convertToSubstitution = F;
+		// set up our chromosome: C QTLs, surrounded by neutral regions 
+	defineConstant("W", 1); // size of neutral buffer on each side 
+	pos = 0;
+	q = NULL;
+	for (i in 1:C) {
+		initializeGenomicElement(g1, pos, pos + W-1); 
+		pos = pos + W;
+		initializeGenomicElement(g2, pos, pos); 
+		q = c(q, pos);
+		pos = pos + 1;
+		initializeGenomicElement(g1, pos, pos + W-1);
+		pos = pos + W; 
+	}
+		// adding N unlinked neutral sites at the end, in case we want to analyze popgen of simulated populatons
+	defineConstant("Nstart",pos);
+	initializeGenomicElement(g3,pos,pos+N);
+	defineConstant("Q", q); // remember our QTL positions
+		// we want the QTLs to be unlinked; build a recombination map for that
+	rates = c(rep(c(1e-8, 0.5), C));
+	ends = c((repEach(Q + W, 2) + rep(c(0,1), C))[0:(C*2 - 2)],pos+N);
+	initializeRecombinationRate(rates, ends);
+	}
+
+2001 early() {
+	m2.mutationStackPolicy = "s"; // stacking new mutations after burn-in
+}
+
+1 early() { 
+	sim.addSubpop("p1", popsize); 
+	sim.addSubpop("p2", popsize);
+	sim.addSubpop("p3", popsize);
+	sim.addSubpop("p4", popsize);
+	sim.addSubpop("p5", asInteger(popsize*0.2));
+
+	p1.setMigrationRates(p2, m12); 
+	p2.setMigrationRates(p1, m21); 
+
+	p1.setMigrationRates(p3, m13); 
+	p3.setMigrationRates(p1, m31); 
+
+	p1.setMigrationRates(p4, m14); 
+	p4.setMigrationRates(p1, m41); 
+
+	p1.setMigrationRates(p5, m15); 
+	p5.setMigrationRates(p1, m51); 
+
+	p2.setMigrationRates(p3, m23); 
+	p3.setMigrationRates(p2, m32); 
+
+	p2.setMigrationRates(p4, m24); 
+	p4.setMigrationRates(p2, m42); 
+
+	p2.setMigrationRates(p5, m25); 
+	p5.setMigrationRates(p2, m52); 
+
+	p3.setMigrationRates(p4, m34); 
+	p4.setMigrationRates(p3, m43); 
+
+	p3.setMigrationRates(p5, m35); 
+	p5.setMigrationRates(p3, m53); 
+
+	p4.setMigrationRates(p5, m45); 
+	p5.setMigrationRates(p4, m54); 
+}
+1 late() {	// give m2 mutations to everyone, as standing variation
+	// if this is commented out, QTLs effectively start as 0
+	g = sim.subpopulations.genomes;	n = size(g);
+	print(n);
+	for (q in Q)	{
+		for(ii in 0:(n-1)) {
+			g[ii].addNewMutation(m2, rnorm(1,0,mutEffect), q); 
+		}
+	} 
+	// give m4 (neutral) mutations to everyone
+	for (p in c(Nstart:(Nstart+N)))	{
+		for(ii in 0:(n-1)) {
+			g[ii].addNewMutation(m4, 0.0, p); 
+		}
+	} 
+}
+
+// QTL machinery:
+
+1 late() {	// give one m3 mutation to every individual, to track phenotype 
+	sim.subpopulations.genomes.addNewMutation(m3, 0.0, 0);
+}
+
+
+1: late() {
+	// construct phenotypes for the additive effects of QTLs
+	tags=asFloat(NULL);
+	for (individual in sim.subpopulations.individuals)
+	{
+		m2muts = individual.genomes.mutationsOfType(m2); 
+		tags=c(tags,asFloat(sum(m2muts.selectionCoeff)));
+	} 
+	// heritability:
+	mb=mean(tags);
+	sdb=sd(tags);
+	if (sdb<0.1) { sdb=0.1;}
+	bs=tags-mb;
+	bs=bs/sdb;
+	z=sqrt(h2)*bs+sqrt(1-h2)*rnorm(size(tags),0,1);	
+	pheno=z*sdb+mb;
+	i=0;
+	for (individual in sim.subpopulations.individuals)	{
+		individual.setValue("phenotype",pheno[i]);
+		i=i+1;
+	}
+
+}
+fitness(m2) { 
+	// the QTLs themselves are neutral; the m3 mutation type handles them
+		return 1.0;
+}
+
+
+// temperature setting: random plus sinusoidal variation, plus upwards trend after burn-in
+1: early() {
+	if (sim.generation<2001){
+		sim.setValue("temp",rnorm(1,0,csd)+sin(sim.generation*2*PI/wi)*0.5*hi);
+	}
+	else {
+		sim.setValue("temp",rnorm(1,0,csd)+sin(sim.generation*2*PI/wi)*0.5*hi+(sim.generation-2000)*increment);
+	}
+}
+
+1: fitness(m3, p1) {
+	phenotype=individual.getValue("phenotype");
+	return dnorm(sim.getValue("temp")+1.57 - phenotype, 0.0, pl)/maxfit; 
+}
+1: fitness(m3, p2) {
+	phenotype = individual.getValue("phenotype");
+	return dnorm(sim.getValue("temp") - phenotype, 0.0, pl)/maxfit; 
+}
+1: fitness(m3, p3) {
+	phenotype = individual.getValue("phenotype");
+	return dnorm(sim.getValue("temp") - phenotype, 0.0, pl)/maxfit; 
+}
+1: fitness(m3, p4) {
+	phenotype = individual.getValue("phenotype");
+	return dnorm(sim.getValue("temp")+1.6 - phenotype, 0.0, pl)/maxfit; 
+}
+1: fitness(m3, p5) {
+	phenotype = individual.getValue("phenotype");
+	return dnorm(sim.getValue("temp")-1.8 - phenotype, 0.0, pl)/maxfit; 
+}
+
+
+// output
+2: early() {
+	cat(sim.generation + "\t" + sim.getValue("temp")+"\t"+mean(p1.cachedFitness(NULL)) + "\t"+ mean(p2.cachedFitness(NULL)) + "\t"+ mean(p3.cachedFitness(NULL)) + "\t"+ mean(p4.cachedFitness(NULL)) + "\t"+ mean(p5.cachedFitness(NULL)) + "\t" + mean(p1.individuals.getValue("phenotype")) + "\t" + mean(p2.individuals.getValue("phenotype")) + "\t" + mean(p3.individuals.getValue("phenotype")) + "\t" + mean(p4.individuals.getValue("phenotype")) + "\t" + mean(p5.individuals.getValue("phenotype")) + "\n");
+}
+
+// calculating pop size scaling factors depending on mean fitness acheved over last 10 generations of burnin
+1991 late() {
+ sim.setValue("ps", rep(0, 5));
+}
+1991:2000 late() {
+ means = apply(c(p1,p2,p3,p4,p5),"mean(applyValue.cachedFitness(NULL));");
+ sim.setValue("ps", sim.getValue("ps") + means);
+	if (sim.generation==2000){	
+		defineConstant("fc1",10/sim.getValue("ps")[0]);
+		defineConstant("fc2",10/sim.getValue("ps")[1]);
+		defineConstant("fc3",10/sim.getValue("ps")[2]);
+		defineConstant("fc4",10/sim.getValue("ps")[3]);
+		defineConstant("fc5",10/sim.getValue("ps")[4]);
+		sim.outputMutations(sim.mutationsOfType(m2)); // outputs all QTLs at the end of burn-in
+	}
+}
+
+
+// scaling pop size based on fitness
+2001: early() {
+
+	meanFitness = mean(p1.cachedFitness(NULL));
+	newSize = asInteger(1+popsize * meanFitness * fc1);
+	p1.setSubpopulationSize(newSize);
+	p2.setMigrationRates(p1, m21*((newSize/popsize)^migFactor)); 
+	p3.setMigrationRates(p1, m31*((newSize/popsize)^migFactor)); 
+	p4.setMigrationRates(p1, m41*((newSize/popsize)^migFactor)); 
+	p5.setMigrationRates(p1, m51*((newSize/popsize)^migFactor)); 
+
+	meanFitness = mean(p2.cachedFitness(NULL));
+//	print(c(sim.generation, " p2: ",meanFitness));
+	newSize = asInteger(1+popsize * meanFitness * fc2);
+	p2.setSubpopulationSize(newSize);
+	p1.setMigrationRates(p2, m12*((newSize/popsize)^migFactor)); 
+	p3.setMigrationRates(p2, m32*((newSize/popsize)^migFactor)); 
+	p4.setMigrationRates(p2, m42*((newSize/popsize)^migFactor)); 
+	p5.setMigrationRates(p2, m52*((newSize/popsize)^migFactor)); 
+
+	meanFitness = mean(p3.cachedFitness(NULL));
+//	print(c(sim.generation, " p3: ",meanFitness));
+	newSize = asInteger(1+popsize * meanFitness * fc3);
+	p3.setSubpopulationSize(newSize);
+	p1.setMigrationRates(p3, m13*((newSize/popsize)^migFactor)); 
+	p2.setMigrationRates(p3, m23*((newSize/popsize)^migFactor)); 
+	p4.setMigrationRates(p3, m43*((newSize/popsize)^migFactor)); 
+	p5.setMigrationRates(p3, m53*((newSize/popsize)^migFactor)); 
+
+	meanFitness = mean(p4.cachedFitness(NULL));
+	newSize = asInteger(1+popsize * meanFitness * fc4);
+	p4.setSubpopulationSize(newSize);
+	p1.setMigrationRates(p4, m14*((newSize/popsize)^migFactor)); 
+	p2.setMigrationRates(p4, m24*((newSize/popsize)^migFactor)); 
+	p3.setMigrationRates(p4, m34*((newSize/popsize)^migFactor)); 
+	p5.setMigrationRates(p4, m54*((newSize/popsize)^migFactor)); 
+
+	meanFitness = mean(p5.cachedFitness(NULL));
+	newSize = asInteger(1+popsize*0.2 * meanFitness * fc5);
+	p5.setSubpopulationSize(newSize);
+	p1.setMigrationRates(p5, m15*((newSize/(popsize*0.2))^migFactor)); 
+	p2.setMigrationRates(p5, m25*((newSize/(popsize*0.2))^migFactor)); 
+	p3.setMigrationRates(p5, m35*((newSize/(popsize*0.2))^migFactor)); 
+	p4.setMigrationRates(p5, m45*((newSize/(popsize*0.2))^migFactor)); 
+}
+2400 late() {} 
