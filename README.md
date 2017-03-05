@@ -1,10 +1,12 @@
 Scripts and data to accompany this preprint:
 M. V. Matz, M. J. H. van Oppen, L. K. Bay and E. A. Treml (2017) Adaptive pathways of coral populations on the Great Barrier Reef. bioRxiv:
 
+-------
 Summary
 
 We genotyped five populations of coral Acropora millepora along the Great Barrier Reef using 2bRAD (http://ecogeno.weebly.com/uploads/7/6/2/2/76229469/wang12_2b-rad.pdf) and inferred population sizes and migration rates using dadi (https://bitbucket.org/gutenkunstlab/dadi). These results were compared to biophysical model of larval transport and used to build a multilocus metapopulation adaptation model in SLiM (https://messerlab.org/slim/). 
 
+-------
 Data generation
 
 2bRAD reads were processed using scirpts and pipeline described at https://github.com/z0on/2bRAD_GATK. The cleaned reads were mapped to the genome of Acropora digitifera and quality-filtered (using GATK's Variant Quality Score Recalibration procedure, http://gatkforums.broadinstitute.org/gatk/discussion/39/variant-quality-score-recalibration-vqsr) based on true SNPs identified as a match between genotyping replicates for several individuals. 
@@ -20,6 +22,7 @@ In the sample names the initial letter identifies the source population:
 	M: Magnetic Island (Nelli Bay)
 	K: North Keppel Island
 
+-------
 Data analysis overview (see detailed_walkthrough_amilGBR.txt for details)
 
 1. Excluding potential sites under selection. 
@@ -43,22 +46,34 @@ SCRIPTS:
 --------
 
 Accessory scripts (run without arguments to see full usage description):
+
 thinner.pl : for thinning a VCF file
+
 vcf2dadi.pl : to convert VCF to dadi format
+
 dadiBoot.pl	: generates bootstrapped dadi datasets by resampling entries in the "Gene" column
+
 removeBayescanOutliers.pl : removes SNPs with Bayescan qvalue less than specified.
 
 
 Command-line dadi scripts:
-projections_calc_auto.py : calculates number of segregating site for different projection values
-1d_spectrum_plot.py : plots 1d frequency spectrum to pdf
-2d_spectrum_plot.py	: plots 1d frequency spectrum to pdf
-onegrowth_auto.py :	one-population model with a single growth period
-twogrowth_auto.py :	one-population model with a two growth periods
-s2m_auto.py	: two-population s2m model with split into two different sizes with asymmetrical migration
-twogrowth2d_null.py : two-population model with size change but no split - a null model to compare to s2m to prove that populations are demographically distinct. 
-s2mRM_auto.py : extension of s2m model with a change in migration rates in the last 0.01 time units.
 
-SLiM:
-SLIM_WSOMKmodel_withNeutral.txt : model main code
-slimPlots.R	: script to plot fitness and phenotype trends from SLiM output
+projections_calc_auto.py	calculates number of segregating site for different projection values
+
+1d_spectrum_plot.py	plots 1d frequency spectrum to pdf
+
+2d_spectrum_plot.py	plots 1d frequency spectrum to pdf
+
+onegrowth_auto.py	one-population model with a single growth period
+
+twogrowth_auto.py	one-population model with a two growth periods
+
+s2m_auto.py	two-population s2m model with split into two different sizes with asymmetrical migration
+
+twogrowth2d_null.py	two-population model with size change but no split - a null model to compare to s2m to prove that populations are demographically distinct. 
+
+s2mRM_auto.py	extension of s2m model with a change in migration rates in the last 0.01 time units.
+
+SLiM
+SLIM_WSOMKmodel_withNeutral.txt	model main code
+slimPlots.R	script to plot fitness and phenotype trends from SLiM output
