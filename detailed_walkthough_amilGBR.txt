@@ -144,7 +144,7 @@ CV error (K=2): 0.41214
 CV error (K=3): 0.42688
 CV error (K=4): 0.44462
 
-# listing individuals from vcf file
+# listing individuals from vcf file for later plotting of ADMIXTURE results
 grep "#CHROM" adm5.vcf | perl -pe 's/\t/\n/g' | grep [0-9] > inds.list
 cat inds.list | perl -pe 's/(.)(\S+)/$1$2\t$1/' >inds2pops
 
