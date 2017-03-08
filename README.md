@@ -47,7 +47,7 @@ SCRIPTS
 
 * **thinner.pl** : for thinning a VCF file. Chooses SNPs based on varios criteria (high coverage depth, high alternative allele frequency, random, or combination thereof) from [interval] size windows which are positioned differently in each run, thus the thinned data can vary between runs. 
 * **vcf2dadi.pl** : to convert VCF to *dadi* format.
-* **dadiBoot.pl**	: generates bootstrapped dadi datasets by resampling entries in the "Gene" column.
+* **dadiBoot.pl**	: generates bootstrapped *dadi* datasets by resampling entries in the "Gene" column.
 * **removeBayescanOutliers.pl** : removes SNPs with Bayescan qvalue less than specified.
 * **admixturePlotting.R** : plots admixture graphs hierarchically clustering individuals within populations (for better visual appearance) 
 
