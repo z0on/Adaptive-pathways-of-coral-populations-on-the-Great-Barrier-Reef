@@ -3,7 +3,7 @@
 
 ## Summary
 
-We genotyped ive populations of coral *Acropora millepora* along the Great Barrier Reef using [2bRAD](http://ecogeno.weebly.com/uploads/7/6/2/2/76229469/wang12_2b-rad.pdf) and inferred population sizes and migration rates using [*dadi*](https://bitbucket.org/gutenkunstlab/dadi). These results were compared to biophysical model of larval transport and used to build a multilocus metapopulation adaptation model in [SLiM](https://messerlab.org/slim/). 
+We genotyped five populations of coral *Acropora millepora* along the Great Barrier Reef using [2bRAD](http://ecogeno.weebly.com/uploads/7/6/2/2/76229469/wang12_2b-rad.pdf) and inferred population sizes and migration rates using [*dadi*](https://bitbucket.org/gutenkunstlab/dadi). These results were compared to biophysical model of larval transport and used to build a multilocus metapopulation adaptation model in [SLiM](https://messerlab.org/slim/). 
 
 ## Data generation
 
