@@ -34,9 +34,11 @@ Pairwise Weir and Cockerham Fst between populations were calculated using vcftoo
 The full dataset was thinned again as described in the previous paragraph but this time the SNPs were chosen without regard to allele frequency, not to distort the allele frequency spectrum. The thinned VCF was reformatted into dadi format and 120 bootstrap replicates of it were created by resampling A.digitifera genome contigs with replacement. The data were analyzed by a series of 1d and 2d dadi models to determine effective historical population sizes and pairwise migration rates. The models were compared by summarizing AIC differences across bootstrap replicates.
 
 #### 4. Multi-QTL metapopulation model.
-The model was developed based on the SLiM recipe “Quantitative genetics and phenotypically-based fitness”. The model simulates Fisher-Wright populations with discreet generations. At the start of the simulation, populations are established at specified population sizes and pairwise migration rates (genetic replacement rates), and all QTLs in all individuals are given a mutation with the effect size drawn from a normal distribution with mean zero and specified standard deviation, to create standing genetic variation. The phenotype of each individual is calculated as the sum of QTL effects plus random noise to simulate desired heritability. Then, fitness of each individual is calculated based on the difference between the individual’s phenotypic optimum and the local environmental condition and phenotypic plasticity, modeled as the standard deviation of the Gaussian slope of fitness decline with increasing distance between phenotype and environment. Then, parents are chosen to produce the next generation according to their fitness; parents for immigrant individuals are chosen from among individuals in the source population. New mutations at QTLs happen at specified rate when transitioning to the next generation; the effect of a new mutation replaces the previous QTL effect.
+The model was developed based on the SLiM recipe “Quantitative genetics and phenotypically-based fitness”. The model simulates Fisher-Wright populations with discreet generations. At the start of the simulation, populations are established at specified population sizes and pairwise migration rates. The matrix of these is supplied as a external text file: diagonal - population sizes, off-diagonal - migraton rates (sources a rows and sinks as columns). The script **slimQTL_v2.txt** takes matrices with any number of populations.
 
-Environment is modeled as identical trend across populations with fixed population-specific offset. The trend can be any combination of linear, cyclical and random components. 
+Initially, all QTLs in all individuals are given a mutation with the effect size drawn from a normal distribution with mean zero and specified standard deviation, to create standing genetic variation. The phenotype of each individual is calculated as the sum of QTL effects plus random noise to simulate desired heritability. Then, fitness of each individual is calculated based on the difference between the individual’s phenotypic optimum and the local environmental condition and phenotypic plasticity, modeled as the standard deviation of the Gaussian slope of fitness decline with increasing distance between phenotype and environment. Then, parents are chosen according to their fitness to produce the next generation; parents for immigrant individuals are chosen from among individuals in the source population. New mutations at QTLs happen at specified rate when transitioning to the next generation; the effect of a new mutation replaces the previous QTL effect.
+
+Environmental conditions to model are supplied as a separate file giving environmental setting for each population (rows) in every generation (columns). The provided R script sim_envionment.R generates identical trends across populations with fixed population-specific offsets. The trend can be any combination of linear, cyclical and random components. 
 
 The model involves two phases. First there is a pre-adaptation phase of 2000 generations when there is no linear trend in the environmental condition (althought there can be cyclical or random changes) and populations adapt to their local environment. This is followed by a change phase when the linear environmental trend is added. During the change phase, the populatios' sizes and migration rates from them scale linearly with the populations' mean fitness. In this way, a population declining in fitness shrinks in size and stops contributing migrants to other populations
 
@@ -62,5 +64,11 @@ SCRIPTS
 * **s2mRM_auto.py** : extension of s2m model with a change in migration rates in the last 0.01 time units.
 
 ### SLiM
-* **SLIM_WSOMKmodel_withNeutral.txt** : model main code
-* **slimPlots.R**	: script to plot fitness and phenotype trends from SLiM output
+* **slimQTL_v2.txt** : model main code
+* **migrationMatrix25k.txt**  : matrix of populaton sizes (diagonal) and migration rates used in this study (input for SLiM model).
+* **sim_environment.txt**  : data file with simulated environmental conditions (input for SLiM model).
+* **sim_environment.R** : R script to create sim_environment.txt; see comments within the script or instructions.
+* **slimPlots_v2.R**	: R script to plot fitness and phenotype trends from SLiM output
+
+
+
