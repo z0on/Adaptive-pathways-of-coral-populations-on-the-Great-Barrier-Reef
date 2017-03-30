@@ -1,5 +1,5 @@
 # *Adaptive pathways of coral populations on the Great Barrier Reef* :  Scripts and data 
-* M. V. Matz, E. A. Treml, G. V. Aglyamova, M. J. H. van Oppen and L. K. Bay  (2017) Adaptive pathways of coral populations on the Great Barrier Reef. bioRxiv: [doi:https://doi.org/10.1101/114173](http://biorxiv.org/content/early/2017/03/06/114173.1)
+* M. V. Matz, E. A. Treml, G. V. Aglyamova, M. J. H. van Oppen and L. K. Bay  (2017) Adaptive pathways of coral populations on the Great Barrier Reef. bioRxiv: [doi:https://doi.org/10.1101/114173](http://biorxiv.org/content/early/2017/03/17/114173)
 
 ## Summary
 
