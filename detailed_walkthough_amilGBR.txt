@@ -214,7 +214,8 @@ K 36  7000
 mkdir boots
 cp *dadi.data boots
 cd boots
-ls ../*3_dadi.data | perl -pe 's/(\S+)/dadiBoot.pl in=$1 boot=40/' | bash
+ls *3_dadi.data | perl -pe 's/(\S+)/dadiBoot.pl in=$1 boot=60/' | bash
+rm *dadi.data
 
 #--------------------------------
 # Running dadi models (make a job script for your cluster out of each command-listing file):
@@ -230,6 +231,18 @@ ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 S K 34 36/' >>s2m
 ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 O M 52 38/' >>s2m
 ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 O K 52 36/' >>s2m
 ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 M K 38 36/' >>s2m
+
+# twoepoch2d (null for S2M)
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 W S 32 34/' >te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 W O 32 52/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 W M 32 38/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 W K 32 36/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 S O 34 52/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 S M 34 38/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 S K 34 36/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 O M 52 38/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 O K 52 36/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 M K 38 36/' >>te2d
 
 # s2mRM : s2m model with  migration change at T=0.01 in the past
 ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 W S 32 34/' >s2mRM
@@ -262,10 +275,9 @@ ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twogrowth_auto.py $1 K 36/' >>two
 #------------------------
 # fixing param lines in s2m outputs
 
-cat s2mRM.o577531 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2mRM.o.streamlined
-cat tg2d.o577511 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >tg2d.o.streamlined
-cat s2m.o576379 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2m.o.streamlined
-
+cat s2mRM.o* | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2mRM.o.streamlined
+cat te2d.o* | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >te2d.o.streamlined
+cat s2m.o* | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2m.o.streamlined
 
 #-------------------------
 # collecting results: s2m
@@ -307,6 +319,45 @@ grep -E "O K.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >OK_s2m_lo
 grep -E "M K.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >MK_s2m_logLike.txt
 
 #-----------------
+# collecting results: two-epoch 2d (null for s2m)
+
+# collecting params
+grep -E "W S.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WS_te2d_params.txt
+grep -E "W O.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WO_te2d_params.txt
+grep -E "W M.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WM_te2d_params.txt
+grep -E "W K.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WK_te2d_params.txt
+grep -E "S O.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SO_te2d_params.txt
+grep -E "S M.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SM_te2d_params.txt
+grep -E "S K.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SK_te2d_params.txt
+grep -E "O M.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >OM_te2d_params.txt
+grep -E "O K.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >OK_te2d_params.txt
+grep -E "M K.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >MK_te2d_params.txt
+
+# collecting thetas
+grep -E "W S.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >WS_te2d_theta.txt
+grep -E "W O.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >WO_te2d_theta.txt
+grep -E "W M.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >WM_te2d_theta.txt
+grep -E "W K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >WK_te2d_theta.txt
+grep -E "S O.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >SO_te2d_theta.txt
+grep -E "S M.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >SM_te2d_theta.txt
+grep -E "S K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >SK_te2d_theta.txt
+grep -E "O M.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >OM_te2d_theta.txt
+grep -E "O K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >OK_te2d_theta.txt
+grep -E "M K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >MK_te2d_theta.txt
+
+# collecting logLikes
+grep -E "W S.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WS_te2d_logLike.txt
+grep -E "W O.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WO_te2d_logLike.txt
+grep -E "W M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WM_te2d_logLike.txt
+grep -E "W K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WK_te2d_logLike.txt
+grep -E "S O.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SO_te2d_logLike.txt
+grep -E "S M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SM_te2d_logLike.txt
+grep -E "S K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SK_te2d_logLike.txt
+grep -E "O M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >OM_te2d_logLike.txt
+grep -E "O K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >OK_te2d_logLike.txt
+grep -E "M K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >MK_te2d_logLike.txt
+
+#-----------------
 # analyzing one-pop growth bootstraps
 
 # collecting boots for one-pop two growths:
@@ -330,6 +381,6 @@ grep theta 1gr.o528313 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,
 
 #-----------
 # SLiM modeling
-# the model: SLIM_WSOMKmodel_withNeutral.txt 
+# the model: slimQTL_v2.txt See comments within the script for details
 # (in addition to QTLs this model includes some unlinked neutral sites to do popgen analysis, if desired.)
-# SLiM results plotting: slimPlots.R
+# SLiM results plotting: slimPlots_v2.R
