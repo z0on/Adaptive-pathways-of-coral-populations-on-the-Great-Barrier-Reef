@@ -60,7 +60,7 @@ initialize() {
 	sim.setValue("mignames",mignames);
 	
 	for (p in 0:(npops-1)){
-		sim.addSubpop(paste(c("p",p),sep=""), popsizes[p]);
+		sim.addSubpop(p, popsizes[p]);
 	}
 	for (i in 0:(npops-1)){
 		for (j in 0:(npops-1)){
