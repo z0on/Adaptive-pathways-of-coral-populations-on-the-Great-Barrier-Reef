@@ -37,9 +37,9 @@ initialize() {
 1 early() { 
 	migrations=readFile(migMatrix);
 	defineConstant("npops",size(migrations));
-	popsizes=c();
-	migrates=c();
-	mignames=c();
+	popsizes=NULL;
+	migrates=NULL;
+	mignames=NULL;
 	for (p in 0:(npops-1)){
 //		print("-----------");
 		ms=strsplit(migrations[p],sep="\t");		
