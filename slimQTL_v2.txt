@@ -1,6 +1,6 @@
 initialize() { 
-	defineConstant("migMatrix","~/Documents/coral_triangle_SLiM/choose50_n1k.txt");  // path and filename containing migration matrix with pop sizes on diagonal; rows are sources, columns are sinks
-	defineConstant("Environment","~/Documents/coral_triangle_SLiM/choose50_environment.txt");  // path and filename containing environmental conditions: rows are populations, columns are generations
+	defineConstant("migMatrix","migrationMatrix12.5k.txt");  // path and filename containing migration matrix with pop sizes on diagonal; rows are sources, columns are sinks
+	defineConstant("Environment","sim_environment.txt");  // path and filename containing environmental conditions: rows are populations, columns are generations
 	initializeMutationRate(0); // 1e-7 : 5-fold the per-base mutation rate. 105,000 inds x 2 genomes x 20 QTLs = 4e+6 loci to mutate. Rate 1e-7 => 0.4 new QTL mutations per generation.
 	defineConstant("h2",0.25); // heritability: proportion of phenotypic variaton explained by genetics
 	defineConstant("pl",1.0); // plasticity: SD of the bell curve defining stabilizing selection regime
@@ -33,14 +33,13 @@ initialize() {
 }
 
 // readng the tab-delimited migration rates matrix with pop sizes on diagonal 
-// (no header!)
 // sources are rows, sinks are columns
 1 early() { 
 	migrations=readFile(migMatrix);
 	defineConstant("npops",size(migrations));
-	popsizes=NULL;
-	migrates=NULL;
-	mignames=NULL;
+	popsizes=c();
+	migrates=c();
+	mignames=c();
 	for (p in 0:(npops-1)){
 //		print("-----------");
 		ms=strsplit(migrations[p],sep="\t");		
@@ -50,9 +49,9 @@ initialize() {
 				popsizes=c(popsizes,asInteger(ms[m]));
 			}
 			else {
-//				print(paste(c("m",m,"_",p,"=",ms[m]),sep=""));
+//				print(paste(c("m",m,p,"=",ms[m]),sep=""));
 				migrates=c(migrates,asFloat(ms[m]));
-				mignames=c(mignames,paste(c("m",m,"_",p),sep=""));
+				mignames=c(mignames,paste(c("m",m,p),sep=""));
 			}
 		}
 	}
@@ -61,12 +60,12 @@ initialize() {
 	sim.setValue("mignames",mignames);
 	
 	for (p in 0:(npops-1)){
-		sim.addSubpop(p, popsizes[p]);
+		sim.addSubpop(paste(c("p",p),sep=""), popsizes[p]);
 	}
 	for (i in 0:(npops-1)){
 		for (j in 0:(npops-1)){
 			if( i!=j) {
-sim.subpopulations[i].setMigrationRates(sim.subpopulations[j],migrates[mignames==paste(c("m",i,"_",j),sep="")]);
+sim.subpopulations[i].setMigrationRates(sim.subpopulations[j],migrates[mignames==paste(c("m",i,j),sep="")]);
 			}
 		}
 	}
@@ -100,7 +99,7 @@ sim.subpopulations[i].setMigrationRates(sim.subpopulations[j],migrates[mignames=
 
 // QTL machinery:
 
-1 late() {	// give an m3 mutation to every individual, for phenotypic fitness 
+1 late() {	// give an m3 mutation to every individual, for phenoty(2*PI)c fitness 
 	sim.subpopulations.genomes.addNewMutation(m3, 0.0, 0);
 }
 
@@ -144,7 +143,7 @@ fitness(m2) {
 
 
 // output
-1800: early() {
+2: early() {
 	for (i in 0:(size(sim.subpopulations)-1)){
 		pop=sim.subpopulations[i];
 		cat(sim.generation +"\t" + i +"\t"+mean(pop.cachedFitness(NULL))+ "\t" + mean(pop.individuals.getValue("phenotype")) + "\n");
@@ -167,7 +166,7 @@ fitness(m2) {
 		sim.setValue("fc",fc);
 		sim.outputMutations(sim.mutationsOfType(m2));
 	}
-//		print(sim.getValue("fc"));
+//	print(sim.getValue("fc"));
 }
 
 // scaling pop size based on fitness post burn-in
@@ -178,7 +177,7 @@ fitness(m2) {
 		newSize = asInteger(1+sim.getValue("popsizes")[i] * meanFitness / sim.getValue("fc")[i]);
 		pop.setSubpopulationSize(newSize);
 		for (j in 0:(size(sim.subpopulations)-1)) {	
-			if (i != j) sim.subpopulations[j].setMigrationRates(sim.subpopulations[i], sim.getValue("migrates")[sim.getValue("mignames")==paste(c("m",j,"_",i),sep="")]*((newSize/sim.getValue("popsizes")[i])^migFactor)); 
+			if (i != j) sim.subpopulations[j].setMigrationRates(sim.subpopulations[i], sim.getValue("migrates")[sim.getValue("mignames")==paste(c("m",j,i),sep="")]*((newSize/sim.getValue("popsizes")[i])^migFactor)); 
 		}
 	}
 }
