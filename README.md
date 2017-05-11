@@ -28,7 +28,7 @@ In the VCF file, the initial letter in the sample names identifies the source po
 The VCF file was reformatted into Bayescan format using PDGspider and Bayescan was fun on the whole dataset. Thirteen loci with q-value less than 0.05 were excluded from the subsequent analysis.
 
 #### 2. Pairwise Fst and ADMIXTURE.
-Pairwise Weir and Cockerham Fst between populations were calculated using vcftools. The dataset was thinned to include only SNPs on average 5 kb 9and at least 2.5 kb) apart, choosing SNPs with highest alternative allele frequency. This dataset contained and leaving 11426 SNPs. It was reformatted into bed format (plink) and fed to ADMIXTURE. 
+Pairwise Weir and Cockerham Fst between populations were calculated using vcftools. The dataset was thinned to include only SNPs on average 5 kb and at least 2.5 kb) apart, choosing SNPs with highest alternative allele frequency. This dataset contained and leaving 11426 SNPs. It was reformatted into bed format (plink) and fed to ADMIXTURE. 
 
 #### 3. *dadi*
 The full dataset was thinned again as described in the previous paragraph but this time the SNPs were chosen without regard to allele frequency, not to distort the allele frequency spectrum. The thinned VCF was reformatted into dadi format and 120 bootstrap replicates of it were created by resampling A.digitifera genome contigs with replacement. The data were analyzed by a series of 1d and 2d dadi models to determine effective historical population sizes and pairwise migration rates. The models were compared by summarizing AIC differences across bootstrap replicates.
