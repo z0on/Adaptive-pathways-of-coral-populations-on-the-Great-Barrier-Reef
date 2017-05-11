@@ -381,6 +381,9 @@ grep theta 1gr.o528313 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,
 
 #-----------
 # SLiM modeling
-# the model: slimQTL_v2.txt See comments within the script for details
+# R script to generate environmental parameters: slim_environment.R
+# Text file containing generated environmental parameters: slim_environment.txt
+# Matrix of population sizes (diagonal) and migraiton rates (rows - sources, columns - sinks): migrationMatrix12.5k.txt
+# The model: slimQTL_v2.txt See comments within the script for adjustable parameters.
 # (in addition to QTLs this model includes some unlinked neutral sites to do popgen analysis, if desired.)
 # SLiM results plotting: slimPlots_v2.R
