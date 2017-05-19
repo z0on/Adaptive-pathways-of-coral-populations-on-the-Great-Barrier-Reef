@@ -64,7 +64,8 @@ SCRIPTS
 * **s2mRM_auto.py** : extension of s2m model with a change in migration rates in the last 0.01 time units.
 
 ### SLiM
-* **slimQTL_v2.txt** : model main code
+* **slimQTL_v2.txt** : earlier version of the model with heritability (proportion of phenotypic variation due to genetics) as a fixed parameter 
+* **slimQTL_v3.txt** : version of the model used in the paper: instead of fixed heritability, there is a parameter for the absolute magnitude of non-heritable environmental variation, and heritability is free to evolve.
 * **migrationMatrix12.5k.txt**  : matrix listing populaton sizes (diagonal) and migration rates (off-diagonal, sources are rows, sinks are columns) used in this study (input for SLiM model).
 * **sim_environment.txt**  : data file with simulated environmental conditions (input for SLiM model).
 * **sim_environment.R** : R script to create sim_environment.txt; see comments within the script or instructions.
