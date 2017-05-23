@@ -69,7 +69,7 @@ SCRIPTS
 * **migrationMatrix12.5k.txt**  : matrix listing populaton sizes (diagonal) and migration rates (off-diagonal, sources are rows, sinks are columns) used in this study (input for SLiM model).
 * **sim_environment.txt**  : data file with simulated environmental conditions (input for SLiM model).
 * **sim_environment.R** : R script to create sim_environment.txt; see comments within the script or instructions.
-* **slimPlots_v2.R**	: R script to plot fitness and phenotype trends from SLiM output
+* **slimPlots_v3.R**	: R script to plot fitness and phenotype trends from SLiM model output
 
 
 
