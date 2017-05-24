@@ -56,12 +56,17 @@ SCRIPTS
 ### Command-line *dadi* scripts
 * **projections_calc_auto.py** : calculates number of segregating sites for different projection values
 * **1d_spectrum_plot.py** : plots 1d frequency spectrum to pdf
-* **2d_spectrum_plot.py** : plots 1d frequency spectrum to pdf
+* **2d_spectrum_plot.py** : plots 2d frequency spectrum to pdf
 * **onegrowth_auto.py** :	one-population model with a single growth period
 * **twogrowth_auto.py** :	one-population model with a two growth periods
 * **s2m_auto.py**	: two-population s2m model with split into two different sizes with asymmetrical migration
 * **twoepoch2d_null.py** : two-population model with size change but no split - a null model to compare to s2m to prove that populations are demographically distinct. 
 * **s2mRM_auto.py** : extension of s2m model with a change in migration rates in the last 0.01 time units.
+
+###  Scripts for summarizing *dadi* bootstrap results
+* **AICweights_s2m-2epoch2d.R** : compares results of *s2m_auto.py* and *twoepoch2d_null.py*, to confirm populaiton split
+* **1d_bootplots_2growth_withSE.R** : plots population size through time based on single-population two-growth model
+* **migrations_S2MBoots.R** : summarizes and plots results of S2M model
 
 ### SLiM
 * **slimQTL_v2.txt** : earlier version of the model with heritability (proportion of phenotypic variation due to genetics) as a fixed parameter 
