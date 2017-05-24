@@ -1,0 +1,387 @@
+Details on analysis of A.millepora 2bRAD data 
+(Matz et al. 201t Adaptive pathways of coral populations on the Great Barrier Reef)
+
+#---------------------
+# Bayescan:  
+
+# new pops file:
+grep '#CHR' Amil_mapped2adig.vcf | perl -pe 's/\t/\n/g' | grep [0-9] | perl -pe 's/^(.)(.+)/$1$2\t$1/' >bspops
+
+nano vcf2bayescan.spid
+############
+# VCF Parser questions
+PARSER_FORMAT=VCF
+
+# Do you want to include a file with population definitions?
+VCF_PARSER_POP_QUESTION=true
+# Only input following regions (refSeqName:start:end, multiple regions: whitespace separated):
+VCF_PARSER_REGION_QUESTION=
+# What is the ploidy of the data?
+VCF_PARSER_PLOIDY_QUESTION=DIPLOID
+# Only output following individuals (ind1, ind2, ind4, ...):
+VCF_PARSER_IND_QUESTION=
+# Output genotypes as missing if the read depth of a position for the sample is below:
+VCF_PARSER_READ_QUESTION=
+# Take most likely genotype if "PL" or "GL" is given in the genotype field?
+VCF_PARSER_PL_QUESTION=true
+# Do you want to exclude loci with only missing data?
+VCF_PARSER_EXC_MISSING_LOCI_QUESTION=false
+# Select population definition file:
+VCF_PARSER_POP_FILE_QUESTION=./bspops
+# Only output SNPs with a phred-scaled quality of at least:
+VCF_PARSER_QUAL_QUESTION=
+# Do you want to include non-polymorphic SNPs?
+VCF_PARSER_MONOMORPHIC_QUESTION=false
+# Output genotypes as missing if the phred-scale genotype quality is below:
+VCF_PARSER_GTQUAL_QUESTION=
+
+# GESTE / BayeScan Writer questions
+WRITER_FORMAT=GESTE_BAYE_SCAN
+
+# Specify which data type should be included in the GESTE / BayeScan file  (GESTE / BayeScan can only analyze one data type per file):
+GESTE_BAYE_SCAN_WRITER_DATA_TYPE_QUESTION=SNP
+############
+
+# converting thinned biallelic vcf to bayescan format
+java -Xmx1024m -Xms512m -jar ~/bin/PGDSpider_2.0.7.1/PGDSpider2-cli.jar -inputfile Amil_mapped2adig.vcf -outputfile Best.bayescan -spid vcf2bayescan.spid 
+
+# launching bayescan
+echo 'bayescan Best.bayescan -threads=20' >bs
+#------------------------
+# manual job creator
+
+echo '#!/bin/bash
+#SBATCH -J bscan
+#SBATCH -n 24
+#SBATCH -p normal
+#SBATCH -o bscan.o%j
+#SBATCH -e bscan.e%j
+#SBATCH -t 24:00:00
+#SBATCH -A tagmap
+#SBATCH --mail-user=matz@utexas.edu
+#SBATCH --mail-type=begin   # email me when the job starts
+#SBATCH --mail-type=end     # email me when the job finishes
+
+module load launcher
+
+export LAUNCHER_PLUGIN_DIR=$LAUNCHER_DIR/plugins
+export LAUNCHER_RMI=SLURM
+export LAUNCHER_JOB_FILE=bs
+
+$LAUNCHER_DIR/paramrun '>bscan.slurm
+
+sbatch bscan.slurm
+#-------------------------
+
+#  use bayescan_plots.R to explore the results on your laptop; will need to scp
+# Best.baye_fst.txt 
+
+# in Best.baye_fst.txt, each line corresponds to a SNP
+# how many SNPs have a qvalue less than 0.05 (and therefore are possibly under selection?) 
+awk '$4<0.5' Best.baye_fst.txt | wc -l
+# 73
+
+removeBayescanOutliers.pl bayescan=bayescan/Best.baye_fst.txt vcf=Amil_mapped2adig.vcf FDR=0.5 mode=delete >best_adig_noBS.vcf
+# kept 25359, 73 sites removed
+#-----------------------------
+# data thinned to 5k (min 2.5k, criterion=maxDP-random) 
+
+thinner.pl vcf=best_adig_noBS.vcf criterion=maxDP-random interval=5000 >5kA3.vcf
+# 10074 loci selected
+thinner.pl vcf=best_adig_noBS.vcf criterion=maxDP-random interval=5000 >5kB3.vcf
+# 10083 loci selected
+thinner.pl vcf=best_adig_noBS.vcf criterion=maxDP-random interval=5000 >5kC3.vcf
+# 10042 loci selected
+
+#--------------------------------
+# ADMIXTURE
+
+scp best_adig_noBS.vcf cmonstr@ls5.tacc.utexas.edu:/scratch/01211/cmonstr/dadi7/
+
+# thinning 
+thinner.pl vcf=best_adig_noBS.vcf interval=5000 criterion=maxAF >bestAdm5k.vcf
+#25406 total loci
+#852 loci skipped because they were closer than 2500
+#11426 loci selected
+
+# faking chromosome numbers for silly plink:
+cat bestAdm5k.vcf | perl -pe 's/_/z/g'  >bestAdm5k_znames.vcf
+cat bestAdm5k_znames.vcf | perl -pe 's/^(gi\S+(\d)\.1\|)/chr1$2/' >adm5.vcf
+
+# reformatting VCF into plink binary BED format
+plink --vcf adm5.vcf --make-bed --out bestA
+#11426 variants loaded from .bim file.
+#104 people (0 males, 0 females, 104 ambiguous) loaded from .fam.
+#Ambiguous sex IDs written to bestA.nosex .
+#Using 1 thread (no multithreaded calculations invoked.
+#Before main variant filters, 104 founders and 0 nonfounders present.
+#Calculating allele frequencies... done.
+#Total genotyping rate is 0.992632.
+#11426 variants and 104 people pass filters and QC.\
+#Note: No phenotypes present.
+
+for K in 1 2 3 4 ; \
+do admixture --cv bestA.bed $K | tee logBest${K}.out; done
+
+		Pop0	
+Pop0	
+Pop1	0.025	
+
+	Pop0	Pop1	
+Pop0	
+Pop1	0.030	
+Pop2	0.020	0.030	
+
+	Pop0	Pop1	Pop2	
+Pop0	
+Pop1	0.025	
+Pop2	0.029	0.027	
+Pop3	0.034	0.030	0.035	
+
+grep -h CV logBest[1234].out
+CV error (K=1): 0.40033
+CV error (K=2): 0.41214
+CV error (K=3): 0.42688
+CV error (K=4): 0.44462
+
+# listing individuals from vcf file for later plotting of ADMIXTURE results
+grep "#CHROM" adm5.vcf | perl -pe 's/\t/\n/g' | grep [0-9] > inds.list
+cat inds.list | perl -pe 's/(.)(\S+)/$1$2\t$1/' >inds2pops
+
+# scp the *.Q and inds2pops files to laptop, plot it in R:
+# use admixturePlotting3.R to plot (will require minor editing - population names)
+#  no difference in admixture plot after removing bayescan outliers!
+
+#--------------------------------
+# creating pops table
+
+vcftools --vcf 5kA3.vcf --het
+cat out.het | cut -f 1 | perl -pe 's/^((\S)\S+)/$1\t$2/' | grep -v IND > inds2pops
+echo "BEGIN">pops
+cat inds2pops >>pops
+echo "END" >>pops
+grep -E "W$" pops | wc -l # 18 Wilke
+grep -E "S$" pops| wc -l # 18 Sudbury
+grep -E "O$" pops | wc -l # 28 Orpheus
+grep -E "M$" pops | wc -l # 20 Magnetic
+grep -E "K$" pops | wc -l # 20 Keppels
+
+cat out.het | cut -f 1 | grep -E "^W" >w.pop
+cat out.het | cut -f 1 | grep -E "^S" >s.pop
+cat out.het | cut -f 1 | grep -E "^O" >o.pop
+cat out.het | cut -f 1 | grep -E "^M" >m.pop
+cat out.het | cut -f 1 | grep -E "^K" >k.pop
+
+#--------------------------------
+# pairwise Fst using admixture thinned data
+
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop w.pop --weir-fst-pop s.pop  # 0.0021652
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop w.pop --weir-fst-pop o.pop  # 0.0016929
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop w.pop --weir-fst-pop m.pop  # 0.003005
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop w.pop --weir-fst-pop k.pop  # 0.012813
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop s.pop --weir-fst-pop o.pop  # 0.0004194
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop s.pop --weir-fst-pop m.pop  # 0.00021197
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop s.pop --weir-fst-pop k.pop  # 0.0096461
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop o.pop --weir-fst-pop m.pop  # 0.00086879
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop o.pop --weir-fst-pop k.pop  # 0.0091892
+vcftools --vcf bestAdm5k.vcf --weir-fst-pop m.pop --weir-fst-pop k.pop  # 0.0067853
+
+#--------------------------------
+# converting vcfs to dadi (need bioperl)
+
+vcf2dadi.pl $WORK/db/adigitifera_genome.fasta 5kA3.vcf pops
+mv pops.data 5kA3_dadi.data
+
+vcf2dadi.pl $WORK/db/adigitifera_genome.fasta 5kB3.vcf pops
+mv pops.data 5kB3_dadi.data
+
+vcf2dadi.pl $WORK/db/adigitifera_genome.fasta 5kC3.vcf pops
+mv pops.data 5kC3_dadi.data
+
+#--------------------------------
+# Best dadi projection settings (projections_calc.py on 5kA2_dadi.data to maximize number of segregating sites):
+
+pop projected_N nSites
+W 32  6268
+S 34  6353
+O 52  7193
+M 38  6663
+K 36  6143
+
+#--------------------------------
+# bootstrapping data
+
+mkdir boots
+cp *dadi.data boots
+cd boots
+ls *3_dadi.data | perl -pe 's/(\S+)/dadiBoot.pl in=$1 boot=60/' | bash
+rm *dadi.data
+
+#--------------------------------
+# Running dadi models (make a job script for your cluster out of each command-listing file):
+
+# S2M model: instantaneous divergence into 2 pops of diff sizes, asymmetrical migration
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 W S 32 34/' >s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 W O 32 52/' >>s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 W M 32 38/' >>s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 W K 32 36/' >>s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 S O 34 52/' >>s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 S M 34 38/' >>s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 S K 34 36/' >>s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 O M 52 38/' >>s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 O K 52 36/' >>s2m
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2m_auto.py $1 M K 38 36/' >>s2m
+
+# twoepoch2d (null for S2M)
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 W S 32 34/' >te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 W O 32 52/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 W M 32 38/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 W K 32 36/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 S O 34 52/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 S M 34 38/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 S K 34 36/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 O M 52 38/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 O K 52 36/' >>te2d
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twoepoch2d_null.py $1 M K 38 36/' >>te2d
+
+
+# s2mRM : s2m model with  migration change at T=0.01 in the past
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 W S 32 34/' >s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 W O 32 52/' >>s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 W M 32 38/' >>s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 W K 32 36/' >>s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 S O 34 52/' >>s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 S M 34 38/' >>s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 S K 34 36/' >>s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 O M 52 38/' >>s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 O K 52 36/' >>s2mRM
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python s2mRM_auto.py $1 M K 38 36/' >>s2mRM
+
+# single-population models:
+# one growth period
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python onegrowth_auto.py $1 W 32/' >oneGR
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python onegrowth_auto.py $1 S 34/' >>oneGR
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python onegrowth_auto.py $1 O 52/' >>oneGR
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python onegrowth_auto.py $1 M 38/' >>oneGR
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python onegrowth_auto.py $1 K 36/' >>oneGR
+
+# two growth periods
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twogrowth_auto.py $1 W 32/' >twoGR
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twogrowth_auto.py $1 S 34/' >>twoGR
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twogrowth_auto.py $1 O 52/' >>twoGR
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twogrowth_auto.py $1 M 38/' >>twoGR
+ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twogrowth_auto.py $1 K 36/' >>twoGR
+
+
+#------------------------
+# fixing param lines in s2m outputs
+
+cat s2mRM.o577531 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2mRM.o.streamlined
+cat tg2d.o577511 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >tg2d.o.streamlined
+cat s2m.o576379 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2m.o.streamlined
+
+
+#-------------------------
+# collecting results: s2m
+
+# collecting params
+grep -E "W S.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WS_s2m_params.txt
+grep -E "W O.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WO_s2m_params.txt
+grep -E "W M.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WM_s2m_params.txt
+grep -E "W K.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WK_s2m_params.txt
+grep -E "S O.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SO_s2m_params.txt
+grep -E "S M.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SM_s2m_params.txt
+grep -E "S K.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SK_s2m_params.txt
+grep -E "O M.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >OM_s2m_params.txt
+grep -E "O K.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >OK_s2m_params.txt
+grep -E "M K.*params" s2m.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >MK_s2m_params.txt
+
+# collecting thetas
+grep -E "W S.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >WS_s2m_theta.txt
+grep -E "W O.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >WO_s2m_theta.txt
+grep -E "W M.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >WM_s2m_theta.txt
+grep -E "W K.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >WK_s2m_theta.txt
+grep -E "S O.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >SO_s2m_theta.txt
+grep -E "S M.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >SM_s2m_theta.txt
+grep -E "S K.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >SK_s2m_theta.txt
+grep -E "O M.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >OM_s2m_theta.txt
+grep -E "O K.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >OK_s2m_theta.txt
+grep -E "M K.*theta" s2m.o.streamlined | awk '{print $2,$3,$4,$6}'  >MK_s2m_theta.txt
+
+# collecting logLikes
+grep -E "W S.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >WS_s2m_logLike.txt
+grep -E "W O.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >WO_s2m_logLike.txt
+grep -E "W M.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >WM_s2m_logLike.txt
+grep -E "W K.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >WK_s2m_logLike.txt
+grep -E "S O.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >SO_s2m_logLike.txt
+grep -E "S M.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >SM_s2m_logLike.txt
+grep -E "S K.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >SK_s2m_logLike.txt
+grep -E "O M.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >OM_s2m_logLike.txt
+grep -E "O K.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >OK_s2m_logLike.txt
+grep -E "M K.*logLike" s2m.o.streamlined | awk '{print $2,$3,$4,$7}'  >MK_s2m_logLike.txt
+
+# collecting results: two-epoch 2d
+
+# collecting params
+grep -E "W S.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WS_te2d_params.txt
+grep -E "W O.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WO_te2d_params.txt
+grep -E "W M.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WM_te2d_params.txt
+grep -E "W K.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >WK_te2d_params.txt
+grep -E "S O.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SO_te2d_params.txt
+grep -E "S M.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SM_te2d_params.txt
+grep -E "S K.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >SK_te2d_params.txt
+grep -E "O M.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >OM_te2d_params.txt
+grep -E "O K.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >OK_te2d_params.txt
+grep -E "M K.*params" te2d.o.streamlined | awk '{print $2,$3,$4,$8,$9,$10,$11,$12,$13,$14}'  >MK_te2d_params.txt
+
+# collecting thetas
+grep -E "W S.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >WS_te2d_theta.txt
+grep -E "W O.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >WO_te2d_theta.txt
+grep -E "W M.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >WM_te2d_theta.txt
+grep -E "W K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >WK_te2d_theta.txt
+grep -E "S O.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >SO_te2d_theta.txt
+grep -E "S M.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >SM_te2d_theta.txt
+grep -E "S K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >SK_te2d_theta.txt
+grep -E "O M.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >OM_te2d_theta.txt
+grep -E "O K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >OK_te2d_theta.txt
+grep -E "M K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >MK_te2d_theta.txt
+
+# collecting logLikes
+grep -E "W S.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WS_te2d_logLike.txt
+grep -E "W O.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WO_te2d_logLike.txt
+grep -E "W M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WM_te2d_logLike.txt
+grep -E "W K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WK_te2d_logLike.txt
+grep -E "S O.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SO_te2d_logLike.txt
+grep -E "S M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SM_te2d_logLike.txt
+grep -E "S K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SK_te2d_logLike.txt
+grep -E "O M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >OM_te2d_logLike.txt
+grep -E "O K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >OK_te2d_logLike.txt
+grep -E "M K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >MK_te2d_logLike.txt
+
+#-----------------
+# analyzing one-pop growth bootstraps
+
+# collecting boots for one-pop two growths:
+grep params twoGR.o577512 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,$5,$6,$7,$8}' >2grBootParams.txt
+grep logLike twoGR.o577512 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,$6}' >2grBootlikes.txt
+grep theta twoGR.o577512 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,$5}' >2grBootTheta.txt
+
+# collecting likelihoods for one-pop one growths
+grep logLike 1gr.o528313 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,$6}' >1grBootlikes.txt
+grep theta 1gr.o528313 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,$5}' >1grThetas.txt
+
+#--------------------
+# analyzing results of s2m bootstraps: migrations_S2MBoots.R
+
+# AIC analysis: 
+# - for population subdivision (s2m vs twoGrowths2d model): AICweights_s2m-2ep_migration.R
+# - s2m with recent migration vs s2m: AICweights_s2mRM-s2m_migration.R
+# - one growth vs two growths (for pop size changes): AICweights_2gr_1gr.R
+
+# Pop sizes change calc and plot: 1d_bootplots_2growth_withSE.R
+
+#-----------
+# SLiM modeling
+# the model: slimQTL_v2.txt See comments within the script for details
+# (in addition to QTLs this model includes some unlinked neutral sites to do popgen analysis, if desired.)
+# SLiM results plotting: slimPlots_v2.R
