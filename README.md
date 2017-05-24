@@ -60,7 +60,7 @@ SCRIPTS
 * **onegrowth_auto.py** :	one-population model with a single growth period
 * **twogrowth_auto.py** :	one-population model with a two growth periods
 * **s2m_auto.py**	: two-population s2m model with split into two different sizes with asymmetrical migration
-* **twogrowth2d_null.py** : two-population model with size change but no split - a null model to compare to s2m to prove that populations are demographically distinct. 
+* **twoepoch2d_null.py** : two-population model with size change but no split - a null model to compare to s2m to prove that populations are demographically distinct. 
 * **s2mRM_auto.py** : extension of s2m model with a change in migration rates in the last 0.01 time units.
 
 ### SLiM
