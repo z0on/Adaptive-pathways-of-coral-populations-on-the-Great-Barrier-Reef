@@ -22,19 +22,19 @@ In the VCF file, the initial letter in the sample names identifies the source po
 * K: North Keppel Island
 
 ## Data analysis overview 
-(see **detailed_walkthrough_amilGBR.txt** for details)
+(see **detailed_walkthrough_amilGBR_BSoutliers0.5.txt** for details)
 
 #### 1. Excluding potential sites under selection. 
-The VCF file was reformatted into Bayescan format using PDGspider and Bayescan was fun on the whole dataset. Thirteen loci with q-value less than 0.05 were excluded from the subsequent analysis.
+The VCF file was reformatted into Bayescan format using PDGspider and Bayescan was fun on the whole dataset. 73 loci with q-value less than 0.5 were excluded from the subsequent analysis.
 
 #### 2. Pairwise Fst and ADMIXTURE.
-Pairwise Weir and Cockerham Fst between populations were calculated using vcftools. The dataset was thinned to include only SNPs on average 5 kb and at least 2.5 kb) apart, choosing SNPs with highest alternative allele frequency. This dataset contained and leaving 11426 SNPs. It was reformatted into bed format (plink) and fed to ADMIXTURE. 
+Pairwise Weir and Cockerham Fst between populations were calculated using vcftools. The dataset was thinned to include only SNPs on average 5 kb and at least 2.5 kb) apart, choosing SNPs with highest alternative allele frequency. This dataset contained 11426 SNPs. It was reformatted into bed format (plink) and fed to ADMIXTURE. 
 
 #### 3. *dadi*
-The full dataset was thinned again as described in the previous paragraph but this time the SNPs were chosen without regard to allele frequency, not to distort the allele frequency spectrum. The thinned VCF was reformatted into dadi format and 120 bootstrap replicates of it were created by resampling A.digitifera genome contigs with replacement. The data were analyzed by a series of 1d and 2d dadi models to determine effective historical population sizes and pairwise migration rates. The models were compared by summarizing AIC differences across bootstrap replicates.
+The full dataset was thinned again as described in the previous paragraph but this time the SNPs were chosen without regard to allele frequency, not to distort the allele frequency spectrum. The thinned VCF was reformatted into dadi format and 120 bootstrap replicates of it were created by resampling A.digitifera genome contigs with replacement (script **dadiBoot.pl**). The data were analyzed by a series of 1d and 2d dadi models to determine effective historical population sizes and pairwise migration rates. The models were compared by summarizing AIC differences across bootstrap replicates.
 
 #### 4. Multi-QTL metapopulation model.
-The model was developed based on the SLiM recipe “Quantitative genetics and phenotypically-based fitness”. The model simulates Fisher-Wright populations with discreet generations. At the start of the simulation, populations are established at specified population sizes and pairwise migration rates. The matrix of these is supplied as a external text file: diagonal - population sizes, off-diagonal - migraton rates (rows are sources and columns are sinks). The script **slimQTL_v3.txt** takes matrices with any number of populations.
+The model was developed based on the SLiM recipe “Quantitative genetics and phenotypically-based fitness”. The model simulates Fisher-Wright populations with discreet generations. At the start of the simulation, populations are established at specified population sizes and pairwise migration rates. The matrix of these is supplied as a external text file: diagonal - population sizes, off-diagonal - migraton rates (rows are sources and columns are sinks). The script **slimQTL_v3.slim** takes matrices with any number of populations.
 
 Initially, all QTLs in all individuals are given a mutation with the effect size drawn from a normal distribution with mean zero and specified standard deviation, to create standing genetic variation. The phenotype of each individual is calculated as the sum of QTL effects plus random noise to simulate non-heritable environmental influence. Then, fitness of each individual is calculated based on the difference between the individual’s phenotypic optimum and the local environmental condition and phenotypic plasticity, modeled as the standard deviation of the Gaussian slope of fitness decline with increasing distance between phenotype and environment. Then, parents are chosen according to their fitness to produce the next generation; parents for immigrant individuals are chosen from among individuals in the source population. New mutations at QTLs happen at specified rate when transitioning to the next generation; the effect of a new mutation replaces the previous QTL effect.
 
