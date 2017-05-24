@@ -20,9 +20,9 @@ import os
 
 dd = Misc.make_data_dict(infile)
 #dd = Misc.make_data_dict("5kA_dadi.data")
-data = Spectrum.from_data_dict(dd, pop_ids,projections,polarized=False)
+data = Spectrum.from_data_dict(dd, pop_ids,projections,polarized=True)
 ns=data.sample_sizes
-pts=[60,75,90]
+pts=[65,80,95]
 np.set_printoptions(precision=3)     
 
 """
@@ -33,7 +33,7 @@ pts=[60,75,90]
 """
 
 #-------------------
-# model for two populations with no divergence and two growth periods
+# model for two populations with no divergence, only two epochs of pop size
 
 
 def two_epoch2D(params, ns, pts):
