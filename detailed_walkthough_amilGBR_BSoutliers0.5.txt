@@ -276,9 +276,9 @@ ls *data.boot*[0-9] | perl -pe 's/(\S+)/python twogrowth_auto.py $1 K 36/' >>two
 #------------------------
 # fixing param lines in s2m outputs
 
-cat s2mRM.o577531 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2mRM.o.streamlined
-cat tg2d.o577511 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >tg2d.o.streamlined
-cat s2m.o576379 | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2m.o.streamlined
+cat s2mRM.o* | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2mRM.o.streamlined
+cat te2d.o* | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >te2d.o.streamlined
+cat s2m.o* | perl -pe 's/(.+)params(.+)(\d)\n/$1params$2$3/' | perl -pe 's/\s?\]\n/\n/ ' >s2m.o.streamlined
 
 
 #-------------------------
@@ -347,16 +347,21 @@ grep -E "O K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >OK_te2d_th
 grep -E "M K.*theta" te2d.o.streamlined | awk '{print $2,$3,$4,$6}'  >MK_te2d_theta.txt
 
 # collecting logLikes
-grep -E "W S.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WS_te2d_logLike.txt
-grep -E "W O.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WO_te2d_logLike.txt
-grep -E "W M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WM_te2d_logLike.txt
-grep -E "W K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WK_te2d_logLike.txt
-grep -E "S O.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SO_te2d_logLike.txt
-grep -E "S M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SM_te2d_logLike.txt
-grep -E "S K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SK_te2d_logLike.txt
-grep -E "O M.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >OM_te2d_logLike.txt
-grep -E "O K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >OK_te2d_logLike.txt
-grep -E "M K.*logLike" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >MK_te2d_logLike.txt
+grep -E "5k.*W S.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WS_te2d_logLike.txt
+grep -E "5k.*W O.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WO_te2d_logLike.txt
+grep -E "5k.*W M.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WM_te2d_logLike.txt
+grep -E "5k.*W K.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >WK_te2d_logLike.txt
+grep -E "5k.*S O.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SO_te2d_logLike.txt
+grep -E "5k.*S M.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SM_te2d_logLike.txt
+grep -E "5k.*S K.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >SK_te2d_logLike.txt
+grep -E "5k.*O M.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >OM_te2d_logLike.txt
+grep -E "5k.*O K.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >OK_te2d_logLike.txt
+grep -E "5k.*M K.*logLike.*-[1-9]" te2d.o.streamlined | awk '{print $2,$3,$4,$7}'  >MK_te2d_logLike.txt
+
+# combining all likelihoods for AIC-bootstrap:
+
+cat *te2d_logLike.txt > te2d_allLikes.txt
+cat *s2m_logLike.txt > s2m_allLikes.txt
 
 #-----------------
 # analyzing one-pop growth bootstraps
