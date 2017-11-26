@@ -390,3 +390,112 @@ grep theta 1gr.o528313 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,
 # the model: slimQTL_v3.txt See comments within the script for details
 # (in addition to QTLs this model includes some unlinked neutral sites to do popgen analysis, if desired.)
 # SLiM results plotting: slimPlots_v2.R
+
+#-------------
+historical population sizes with stairwayPlot
+
+# creating lists of samples per population
+grep "#CHR" Amil_mapped2adig_cleaned.vcf | perl -pe 's/\t/\n/g' | tail +10 >inds
+grep "^K" inds >keppel
+grep "^W" inds >wilkie
+grep "^O" inds >orpheus
+grep "^S" inds >sudbury
+grep "^M" inds >magnetic
+
+# create a table of individuals to populations with pooled pops
+cat wilkie sudbury orpheus magnetic >gbr
+vcftools --vcf Amil_mapped2adig_cleaned.vcf --keep gbr --recode --recode-INFO-all --out gbr
+
+# using ANGSD to produce SFS for stairwayPlot out of VCF
+angsd -vcf-gl gbr.recode.vcf -fai $WORK/db/adigitifera_genome.fasta.fai -nind 84 -doSaf 1 -anc $WORK/db/adigitifera_genome.fasta -out GBR -P 12
+
+realSFS GBR.saf.idx >GBR.sfs
+
+cat GBR.sfs
+# copy this without first and last number
+1205.549873 4549.413036 2344.408420 1513.952135 1102.169607 920.347893 789.900934 683.898925 607.684802 507.003071 433.779971 449.789508 346.408127 354.417077 324.987942 291.094444 305.220530 259.333440 236.455528 199.667263 205.118985 212.000954 195.257624 165.763240 183.341094 148.224358 171.019417 155.866988 147.312307 120.504629 108.988220 121.399125 128.334869 102.226777 105.345428 104.953615 91.541177 135.457086 85.750186 93.243257 80.055399 96.657026 106.609066 74.735287 86.097297 59.463397 75.947139 80.652922 67.622045 57.661906 51.637810 74.089825 89.263878 62.897842 70.930937 94.894185 57.918462 69.505983 60.986541 79.275912 68.598825 54.644587 62.987477 48.329086 36.256707 55.488601 41.256811 46.095849 58.498897 32.441679 55.548750 33.124464 33.062128 48.500166 31.222090 44.511390 28.873413 36.631489 54.460285 32.303109 31.629931 32.193240 28.346071 41.079364 29.869377 32.022979 39.460287 24.938251 22.151324 19.447355 22.875250 40.507935 31.025163 25.503787 35.196695 21.342324 44.014018 28.598997 18.779556 32.669381 22.075790 32.392818 30.041228 29.501388 23.802686 30.086018 23.978504 12.803774 31.816651 29.296328 34.134217 15.280259 16.044734 17.572822 24.497544 13.045258 26.558167 25.995895 32.656414 25.883430 23.126480 25.405169 26.853638 16.021631 20.271376 13.916499 19.156336 26.748737 17.996609 17.174250 13.333428 17.495935 15.092635 15.117338 21.628414 25.505034 14.944218 21.397821 15.955891 24.380645 6.482673 25.204705 18.871446 16.272522 9.238492 12.254168 23.723910 19.841370 11.556584 15.063453 14.253844 12.075625 14.967713 8.334841 7.808587 16.115630 5.286960 18.628195 11.010686 10.674307 11.603545 12.767884 10.137035 12.203401 17.419127 8.128979 25.075844 19.583458 37.907201
+
+nano GBR.blueprint
+#example blueprint file
+#input setting
+popid: GBR1200 # id of the population (no white space)
+nseq: 168 # number of sequences
+L: 810000 # total number of observed nucleic sites, including polymorphic and monomorphic
+whether_folded: false # whethr the SFS is folded (true or false)
+SFS: 4549.413036 2344.408420 1513.952135 1102.169607 920.347893 789.900934 683.898925 607.684802 507.003071 433.779971 449.789508 346.408127 354.417077 324.987942 291.094444 305.220530 259.333440 236.455528 199.667263 205.118985 212.000954 195.257624 165.763240 183.341094 148.224358 171.019417 155.866988 147.312307 120.504629 108.988220 121.399125 128.334869 102.226777 105.345428 104.953615 91.541177 135.457086 85.750186 93.243257 80.055399 96.657026 106.609066 74.735287 86.097297 59.463397 75.947139 80.652922 67.622045 57.661906 51.637810 74.089825 89.263878 62.897842 70.930937 94.894185 57.918462 69.505983 60.986541 79.275912 68.598825 54.644587 62.987477 48.329086 36.256707 55.488601 41.256811 46.095849 58.498897 32.441679 55.548750 33.124464 33.062128 48.500166 31.222090 44.511390 28.873413 36.631489 54.460285 32.303109 31.629931 32.193240 28.346071 41.079364 29.869377 32.022979 39.460287 24.938251 22.151324 19.447355 22.875250 40.507935 31.025163 25.503787 35.196695 21.342324 44.014018 28.598997 18.779556 32.669381 22.075790 32.392818 30.041228 29.501388 23.802686 30.086018 23.978504 12.803774 31.816651 29.296328 34.134217 15.280259 16.044734 17.572822 24.497544 13.045258 26.558167 25.995895 32.656414 25.883430 23.126480 25.405169 26.853638 16.021631 20.271376 13.916499 19.156336 26.748737 17.996609 17.174250 13.333428 17.495935 15.092635 15.117338 21.628414 25.505034 14.944218 21.397821 15.955891 24.380645 6.482673 25.204705 18.871446 16.272522 9.238492 12.254168 23.723910 19.841370 11.556584 15.063453 14.253844 12.075625 14.967713 8.334841 7.808587 16.115630 5.286960 18.628195 11.010686 10.674307 11.603545 12.767884 10.137035 12.203401 17.419127 8.128979 25.075844 19.583458
+#smallest_size_of_SFS_bin_used_for_estimation: 1 # default is 1; to ignore singletons, change this number to 2
+#largest_size_of_SFS_bin_used_for_estimation: # default is n-1; to ignore singletons, change this number to nseq-2
+pct_training: 0.67 # percentage of sites for training
+nrand: 40 80 120 160 # number of random break points for each try (separated by white space)roughly (nseq-2)/4, (nseq-2)/2, (nseq-2)*3/4, nseq-2
+project_dir: GBR # project directory
+stairway_plot_dir: $WORK/stairway_plot_v2beta/stairway_plot_es # directory to the stairway plot files
+ninput: 200 # number of input files to be created for each estimation
+#output setting
+mu: 2e-8 # assumed mutation rate per site per generation
+year_per_generation: 5 # assumed generation time (in years)
+#plot setting
+plot_title: GBR # title of the plot
+xrange: 0.1,10000 # Time (1k year) range; format: xmin,xmax; "0,0" for default
+yrange: 0,0 # Ne (1k individual) range; format: xmin,xmax; "0,0" for default
+xspacing: 2 # X axis spacing
+yspacing: 2 # Y axis spacing
+fontsize: 12 # Font size
+
+
+java -cp $WORK/stairway_plot_v2beta/stairway_plot_es Stairbuilder GBR.blueprint 
+grep swarmops GBR.blueprint.sh > addTheta
+launcher_creator.py -j addTheta -n at -e matz@utexas.edu -a tagmap -t 0:15:00 -w 46 -q normal
+sbatch at.slurm
+grep -v swarmops GBR.blueprint.sh >movesPlots
+bash movesPlots
+
+#--------
+for Keppel
+
+vcftools --vcf Amil_mapped2adig_cleaned.vcf --keep keppel --recode --recode-INFO-all --out kep
+angsd -vcf-gl kep.recode.vcf -fai $WORK/db/adigitifera_genome.fasta.fai -nind 20 -doSaf 1 -anc $WORK/db/adigitifera_genome.fasta -out KEP -P 12
+realSFS KEP.saf.idx >KEP.sfs
+
+cat KEP.sfs
+9128.906693 3611.990493 2187.088546 1468.783882 1111.829035 927.319642 661.421821 595.049705 467.266975 448.244660 370.848669 346.221690 312.925242 317.474469 286.236966 241.602681 208.187119 187.327138 184.846970 146.758348 154.407846 122.384161 126.151723 114.592811 99.665114 113.626239 132.292202 96.202238 112.921098 81.487293 106.384906 86.260840 79.385024 86.838447 61.289235 65.937772 66.982235 47.258521 60.012192 45.858007 116.731355
+
+nano KEP.blueprint
+#example blueprint file
+#input setting
+popid: KEP # id of the population (no white space)
+nseq: 40 # number of sequences
+L: 810000 # total number of observed nucleic sites, including polymorphic and monomorphic
+whether_folded: false # whethr the SFS is folded (true or false)
+SFS: 3611.990493 2187.088546 1468.783882 1111.829035 927.319642 661.421821 595.049705 467.266975 448.244660 370.848669 346.221690 312.925242 317.474469 286.236966 241.602681 208.187119 187.327138 184.846970 146.758348 154.407846 122.384161 126.151723 114.592811 99.665114 113.626239 132.292202 96.202238 112.921098 81.487293 106.384906 86.260840 79.385024 86.838447 61.289235 65.937772 66.982235 47.258521 60.012192 45.858007
+#smallest_size_of_SFS_bin_used_for_estimation: 1 # default is 1; to ignore singletons, change this number to 2
+#largest_size_of_SFS_bin_used_for_estimation: # default is n-1; to ignore singletons, change this number to nseq-2
+pct_training: 0.67 # percentage of sites for training
+nrand: 9 18 27 38 # number of random break points for each try (separated by white space)roughly (nseq-2)/4, (nseq-2)/2, (nseq-2)*3/4, nseq-2
+project_dir: KEP # project directory
+stairway_plot_dir: $WORK/stairway_plot_v2beta/stairway_plot_es # directory to the stairway plot files
+ninput: 200 # number of input files to be created for each estimation
+#output setting
+mu: 2e-8 # assumed mutation rate per site per generation
+year_per_generation: 5 # assumed generation time (in years)
+#plot setting
+plot_title: KEP # title of the plot
+xrange: 0.1,10000 # Time (1k year) range; format: xmin,xmax; "0,0" for default
+yrange: 0,0 # Ne (1k individual) range; format: xmin,xmax; "0,0" for default
+xspacing: 2 # X axis spacing
+yspacing: 2 # Y axis spacing
+fontsize: 12 # Font size
+
+
+java -cp $WORK/stairway_plot_v2beta/stairway_plot_es Stairbuilder KEP.blueprint 
+grep swarmops KEP.blueprint.sh > addThetaK
+launcher_creator.py -j addThetaK -n atk -e matz@utexas.edu -a tagmap -t 0:15:00 -w 46 -q normal
+sbatch atk.slurm
+grep -v swarmops KEP.blueprint.sh >movesPlotsK
+bash movesPlotsK
+
+#======================
+
+
+scp *final.summary file from the project directory to laptop, use GBR_stairway.R to plot
+
+
