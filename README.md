@@ -71,7 +71,7 @@ SCRIPTS
 ### SLiM
 * **slimQTL_v2.txt** : earlier version of the model with heritability (proportion of phenotypic variation due to genetics) as a fixed parameter 
 * **slimQTL_V3.slim** : version of the model used in the paper: instead of fixed heritability, there is a parameter for the absolute magnitude of non-heritable environmental variation, and heritability is free to evolve.
-* **slimQTL_v4.txt** : latest version of the model: runs much faster and scales well to 100s of populations. Example input files for this model are 10reefs.txt and 10reefs_environment.txt. **Requires [GitHub version of SLiM](https://github.com/MesserLab/SLiM)**
+* **slimQTL_v4.txt** : latest version of the model: runs much faster and scales well to 100s of populations. Example input files for this model are 10reefs.txt and 10reefs_environment.txt. Requires SLiM version 2.4 or greater.
 * **migrationMatrix12.5k.txt**  : matrix listing populaton sizes (diagonal) and migration rates (off-diagonal, sources are rows, sinks are columns) used in this study (input for SLiM model).
 * **sim_environment.txt**  : data file with simulated environmental conditions (input for SLiM model).
 * **sim_environment.R** : R script to create sim_environment.txt; see comments within the script or instructions.
