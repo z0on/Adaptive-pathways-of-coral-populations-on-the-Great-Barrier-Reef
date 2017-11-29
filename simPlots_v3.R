@@ -59,7 +59,7 @@ slimplots=function(slimfile,burnin,start=-10,title=" ",max.generation=400,yscale
 	if (!is.null(yscale)) { fit=fit+scale_y_continuous(limits=yscale) }
 	phen=ggplot()+
 		geom_line(data=slim,aes(generation,phenotype,colour=population),size=0.3)+
-		geom_line(data=st,aes(generation,phenotype,colour=population),size=0.15,alpha=0.25)+
+		geom_line(data=st,aes(generation,phenotype,colour=population),size=0.3,alpha=0.5)+
 		ylim(27,39)+
 		ggtitle(" ")+
 		xlim(start,max.generation)+
