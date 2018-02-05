@@ -69,14 +69,12 @@ SCRIPTS
 * **migrations_S2MBoots.R** : summarizes and plots results of S2M model
 
 ### SLiM
-* **slimQTL_v2.txt** : earlier version of the model with heritability (proportion of phenotypic variation due to genetics) as a fixed parameter 
-* **slimQTL_V3.slim** : version of the model used in the paper: instead of fixed heritability, there is a parameter for the absolute magnitude of non-heritable environmental variation, and heritability is free to evolve.
-* **slimQTL_v4.txt** : latest version of the model: runs much faster and scales well to 100s of populations. Example input files for this model are 10reefs.txt and 10reefs_environment.txt. Requires SLiM version 2.4 or greater.
+* **slimQTL_v5.3.txt** : the model used in PLoS Genetics version of the paper. Scales well to 100s of populations. Example input files for this model are 10reefs.txt and 10reefs_environment.txt. Requires SLiM version 2.6.
 * **migrationMatrix12.5k.txt**  : matrix listing populaton sizes (diagonal) and migration rates (off-diagonal, sources are rows, sinks are columns) used in this study (input for SLiM model).
 * **sim_environment.txt**  : data file with simulated environmental conditions (input for SLiM model).
 * **sim_environment.R** : R script to create sim_environment.txt; see comments within the script or instructions.
-* **slimPlots_v3.R**	: R script to plot fitness and phenotype trends from SLiM model output
-* **slimPlots_genVar_v3.R**	: R script to plot mutation numbers and size effects
+* **slimPlots_v5.R**	: R script to plot fitness and phenotype trends from SLiM model output
+* **slimPlots_genVar_v5.R**	: R script to plot genetic variation across generations from SLiM model output
 
 
 
