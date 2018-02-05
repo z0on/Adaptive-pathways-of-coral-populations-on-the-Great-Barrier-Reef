@@ -1,5 +1,5 @@
 Details on analysis of A.millepora 2bRAD data 
-(Matz et al. 201t Adaptive pathways of coral populations on the Great Barrier Reef)
+https://www.biorxiv.org/content/early/2017/06/18/114173
 
 #---------------------
 # Bayescan:  
