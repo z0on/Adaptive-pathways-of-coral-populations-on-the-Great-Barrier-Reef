@@ -387,9 +387,9 @@ grep theta 1gr.o528313 | perl -pe 's/\:\s+\[|\s+\]$|\]$//g' | awk '{print $2,$3,
 
 #-----------
 # SLiM modeling
-# the model: slimQTL_v3.txt See comments within the script for details
+# the model: slimQTL_v5.3.slim See comments within the script for details
 # (in addition to QTLs this model includes some unlinked neutral sites to do popgen analysis, if desired.)
-# SLiM results plotting: slimPlots_v2.R
+# SLiM results plotting: slimPlots_v5.R , slim_genVar_v5.R
 
 #-------------
 historical population sizes with stairwayPlot
