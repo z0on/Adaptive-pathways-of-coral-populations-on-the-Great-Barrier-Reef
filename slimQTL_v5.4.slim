@@ -1,0 +1,259 @@
+// version 4: 
+// - instead of heritability there is added random error with constant SD ("esd")
+// (environmental effect on top of genetics);
+// - fitness has low limit ("fitcushion") to stabilize behavior when fitness is very low;
+// - pop size scaling switches on at generation 3500 (500 gens before warming);
+// - hermaphroditic selfing is prohibited
+// version 5: standing genetic variation is created via exagerrated mutatiton process in initialy small population sizes, to reach equilibrium more rapidly
+// version 5.2: outputs numbers of m2 mutations and genetic variance (sum of p*(1-p)*effect^2 over m2 mutations)
+// version 5.3: popscale and extinctionLimit parameters
+// version 5.4: corrected the formula for genetic variance for multiple alleles
+
+
+initialize() {
+	defineConstant("startTime",clock()); 
+	
+	defineConstant("migMatrix","./migrationMatrix12.5k.txt");  
+	defineConstant("Environment","./sim_environment_a.txt");  
+	initializeSLiMOptions(preventIncidentalSelfing=T);
+	defineConstant("Mrate",1e-6);
+	initializeMutationRate(Mrate*100); 
+	defineConstant("popscale",0.25); // set to <1 for quick development runs
+	defineConstant("extinctionLimit",0.1);	// mean fitness at which populaiton is becoming extinct
+	
+	defineConstant("esd",1.0);				// sd of environmental effect on fitness, on top of genetic
+	defineConstant("pl",1.0);				// plasticity: SD of the bell curve defining stabilizing selection regime
+	defineConstant("mutEffect",0.2);		// SD of mutation effects at QTLs (mean=0)
+	defineConstant("C", 10);				// number of QTLs
+	defineConstant("N", 1);					// number of unlinked neutral sites (for popgen)
+
+	defineConstant("migFactor",1);		// power factor for migration rate scaling
+	defineConstant("maxfit",dnorm(0.0,0.0,pl));	// height of N peak, for fitness scaling
+	defineConstant("fitcushion",0.0005);	// lowest possible fitness
+
+	// neutral mutations in non-coding regions
+	initializeMutationType("m1", 0.5, "f", 0.0);					// neutral
+	initializeMutationType("m2", 0.5, "n", 0, mutEffect);		// thermal QTL
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElementType("g2", m2, 1.0);
+	m2.convertToSubstitution =F;
+	initializeGenomicElement(g2,0,C-1);
+	initializeGenomicElement(g1,C,C+N-1);
+	initializeRecombinationRate(0.5);
+	m2.mutationStackPolicy = "s"; // new mutations add to previous ones at the same locus
+}
+
+// reading the tab-delimited migration rates matrix with pop sizes on diagonal 
+// (no header!)
+// sources are rows, sinks are columns
+1 early() { 
+	migrations=readFile(migMatrix);
+	defineConstant("npops",size(migrations));
+	
+	// scan the file once to get pop sizes
+	popsizes=NULL;
+	for (p in 0:(npops-1)){
+//		print("-----------");
+		ms=strsplit(migrations[p],sep="\t");
+		
+//		print(paste(c("\tpopsize",p,"=",ms[p]),sep=""));
+		popsizes=c(popsizes,asInteger(ms[p]));
+	}
+	sim.setValue("popsizes",popsizes);
+	
+	// make our subpopulations
+	for (p in 0:(npops-1)){
+		sim.addSubpop(p, asInteger(popscale*popsizes[p]/100));
+	}
+	sim.setValue("deadpops",rep(0,npops));
+
+	// scan the file again to get and set migration rates
+	for (p in 0:(npops-1)){
+//		print("-----------");
+		ms=asFloat(strsplit(migrations[p],sep="\t"));
+		sim.subpopulations[p].setValue("popmig", ms);
+		
+		for (m in 0:(npops-1)) {
+			if (m!=p) { 
+//				print(paste(c("m",m,"_",p,"=",ms[m]),sep=""));
+				sim.subpopulations[m].setMigrationRates(sim.subpopulations[p],ms[m]);
+			}
+		}
+	}
+}
+
+
+// load environmental profiles: tab-delimited table with generations as columns, pops as rows. Header line must be present but what it contains is irrelevant.
+1 early() { 
+	env=readFile(Environment); // Environment constant is defined earlier
+	for (i in 0:(npops-1)) {
+		sim.setValue(paste(c(i,".env"),sep=""),asFloat(strsplit(env[i+1],sep="\t"))); 
+	}
+	
+	// create specific fitness callbacks for each subpop and generation
+	// note that SLiM now optimizes this exact callback structure, so it is kind of "magic" and will be slower if it is changed at all
+	for (i in 0:(npops-1)) {
+		envValues = sim.getValue(paste(c(i,".env"),sep=""));
+		for (gen in 1:20400)	
+		{
+			env = envValues[gen];
+			src = "{ return " + fitcushion + " + " + "dnorm(" + env + " - individual.tagF, 0.0, " + pl + ") / " + (maxfit / (1 - fitcushion)) + "; }";
+			sim.registerFitnessCallback(NULL, src, NULL, i, gen, gen);
+		}
+	}
+}
+
+
+// QTL machinery:
+
+1: late() {
+	// construct phenotypes for the additive effects of QTLs plus random noise (controlled by esd parameter)
+	inds = sim.subpopulations.individuals;
+	inds.tagF = inds.sumOfMutationsOfType(m2) + rnorm(size(inds),0,esd);
+}
+fitness(m2) { 
+	// the QTLs themselves are neutral
+		return 1.0;
+}
+
+
+// output mean fitness, mean phenotypes, number of m2 mutations, and genetic varance
+19000: early() {
+	muts=sim.mutationsOfType(m2);
+   mpos = muts.position;
+   meffs=muts.selectionCoeff;
+	mutfreq=sim.mutationFrequencies(sim.subpopulations,muts);
+//	print("\n========================\n");
+//   print(mpos);
+ //  print(meffs);
+  // print(mutfreq);
+	totalcount=sim.countOfMutationsOfType(m2);
+	mp=unique(mpos);
+	bigG=0;
+	if (size(muts)>0) {
+		for (i in mp){
+//		print(paste(c("pos",i)));
+			sum1=0;
+			sum2=0;
+			for (k in 0:(size(muts)-1)) {	
+				if ( mpos[k] == i) {
+//					cat(k+" freq:"+mutfreq[k]+" eff:"+meffs[k]+"\n");
+					sum1=sum1+mutfreq[k]*meffs[k]^2;
+					sum2=sum2+mutfreq[k]*meffs[k];
+//					print(c(sum1,sum2));
+				}
+			}
+			bigG=bigG+2*(sum1-sum2^2);
+		}
+	}
+	cat ("#TotalGenVar\t"+sim.generation+"\t"+totalcount+"\t"+bigG+"\n");
+
+	mutcount=sim.mutationCounts(sim.subpopulations,muts);
+	for (j in 0:(size(sim.subpopulations)-1)){
+		pop=sim.subpopulations[j];
+		G=0;nmuts=0;
+		if (size(muts)>0) {
+			mutfreq0=sim.mutationFrequencies(pop,muts);
+//			cat("-----\npop "+j+"\n");
+//			print(mpos);
+//			print(mutfreq0);
+			for (i in mp){
+//				cat("pos"+i+"\n");
+				sum1=0;
+				sum2=0;
+				for (k in 0:(size(muts)-1)) {	
+					if ( mpos[k] == i) {
+						if (mutfreq0[k]==0 | mutfreq0[k]==1) { 
+							next;
+						}
+						nmuts=nmuts+1;
+//						cat("pop:"+j+"  n:"+k+" pos:"+i+" freq:"+mutfreq0[k]+" eff:"+meffs[k]+"\n");
+						sum1=sum1+mutfreq0[k]*meffs[k]^2;
+						sum2=sum2+mutfreq0[k]*meffs[k];
+//						print(c(sum1,sum2));
+					}					
+				}
+				G=G+2*(sum1-sum2^2);
+			}
+		}
+		cat(sim.generation +"\t" + j +"\t"+mean(pop.cachedFitness(NULL))+ "\t" + mean(pop.individuals.tagF) + "\t"+nmuts+"\t"+G+"\n");
+	}
+	
+}
+
+// increasing pop size / decreasing mutation rate (initial genetic equilibration)
+10000 late() {
+	for (p in 0:(npops-1)){
+		sim.subpopulations[p].setSubpopulationSize(asInteger(popscale*sim.getValue("popsizes")[p]/10));
+	}
+   sim.chromosome.setMutationRate(Mrate*10);
+}
+
+15001 late() {
+	for (p in 0:(npops-1)){
+		sim.subpopulations[p].setSubpopulationSize(asInteger(popscale*sim.getValue("popsizes")[p]));
+	}
+   sim.chromosome.setMutationRate(Mrate);
+}
+
+
+// calculating pop size scaling factors depending on mean fitness acheved over generations 19490-19500
+19490 late() {
+ sim.setValue("ps", rep(0, size(sim.subpopulations)));
+}
+19491:19500 late() {
+ means = sapply(sim.subpopulations,"mean(applyValue.cachedFitness(NULL));");
+ sim.setValue("ps", sim.getValue("ps") + means);
+ sim.setValue("fc", rep(1.0, size(sim.subpopulations)));
+	if (sim.generation==19500){	
+		fc=sim.getValue("fc");
+		for (i in 0:(size(sim.subpopulations)-1)) {
+			fc[i]=sim.getValue("ps")[i]/10;
+		}
+		sim.setValue("fc",fc);
+	}
+}
+
+// output all mutations post-burnin
+19999 late() { 
+		sim.outputMutations(sim.mutationsOfType(m2));
+}
+
+// scaling pop size based on fitness post generation 19500
+19501: early() {
+	subpops = sim.subpopulations;
+	popsizes = sim.getValue("popsizes");
+	deadpops=sim.getValue("deadpops");
+	for (i in 0:(size(subpops)-1)) {
+		pop=subpops[i];
+		if(deadpops[i]==1) {
+			next;
+		}
+		popsize = popsizes[i];
+		meanFitness = mean(pop.cachedFitness(NULL));
+		newSize = asInteger(3+popscale*popsize * meanFitness / sim.getValue("fc")[i]);
+		if (meanFitness<extinctionLimit & deadpops[i]==0) {
+	      	  	deadpops[i]=1;
+			sim.setValue("deadpops",deadpops);
+	          	cat("#"+sim.generation+"\t"+i+"\textinct.\n");
+	          	newSize=3;
+		}
+		if (sum(deadpops)==size(subpops)) {
+//	          	cat("#"+sim.generation+"\t"+"ALL\textinct.\n");
+	          	sim.simulationFinished();
+		}
+		pop.setSubpopulationSize(newSize);
+		scaledMig = pop.getValue("popmig") * (newSize/popsize)^migFactor; 
+		if (newSize<popsize){
+			for (j in 0:(size(subpops)-1))
+				if (i != j) {
+//					cat(i + ","+j+" size:"+newSize+" rate:"+scaledMig[j]+"\n");
+					if(scaledMig[j]<1e-7) { scaledMig[j]=0; }
+					subpops[j].setMigrationRates(pop, scaledMig[j]); 
+				}
+		}
+	}
+}
+
+
+20400 late() {}
