@@ -69,7 +69,7 @@ SCRIPTS
 * **migrations_S2MBoots.R** : summarizes and plots results of S2M model
 
 ### SLiM
-* **slimQTL_v5.4.txt** : the model used in PLoS Genetics version of the paper. Scales well to 100s of populations. Requires SLiM version 2.6.
+* **slimQTL_v5.4.slim** : the model used in PLoS Genetics version of the paper. Scales well to 100s of populations. Requires SLiM version 2.6.
 * **migrationMatrix12.5k.txt**  : matrix listing populaton sizes (diagonal) and migration rates (off-diagonal, sources are rows, sinks are columns) used in this study (input for SLiM model).
 * **sim_environment_a.txt**  : data file with simulated environmental conditions (input for SLiM model).
 * **sim_environment.R** : R script to create sim_environment.txt; see comments within the script or instructions.
